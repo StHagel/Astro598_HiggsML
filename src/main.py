@@ -116,11 +116,11 @@ def main():
         # Case 2: Ignore all of the data that involves jet production and delete only the NaN Higgs masses.
         print("Mode IGNORE_JET_DATA is set to True.")
         print("Deleting missing data.")
-        dataframe.dropna(inplace=True)
         for i in SOLOJET_INDEX:
             del dataframe[i]
         for j in MULTIJET_INDEX:
             del dataframe[j]
+        dataframe.dropna(inplace=True)
 
 
     # TODO 2: Remove the lines with NaN's in the Higgs mass and split the data by the number of jets
