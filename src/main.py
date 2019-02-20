@@ -152,7 +152,7 @@ def main():
     # TODO: Choose meaningful parameters, experiment with the model
     model = Sequential()
 
-    model.add(Dense(64, input_dim=20, activation='relu'))
+    model.add(Dense(64, input_dim=19, activation='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(64, activation='relu'))
     model.add(Dropout(0.5))
@@ -163,12 +163,10 @@ def main():
                   metrics=['accuracy'])
 
     model.fit(x_train, y_train,
-              epochs=5,
+              epochs=20,
               batch_size=128)
 
     score = model.evaluate(x_test, y_test, batch_size=128)
-
-    print(score)
 
     # END TRAINING MODEL
 
