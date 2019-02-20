@@ -78,9 +78,15 @@ PHYSICAL_HIGGS_MASS = 125.18
 
 
 def main():
+    # START GPU CONFIG
+
+    config = tf.ConfigProto( device_count = {'GPU': 1 , 'CPU': 24} ) 
+    sess = tf.Session(config=config) 
+    keras.backend.set_session(sess)
+	
+	# END GPU CONFIG
     # START SETTING FLAGS
 
-    K.set_session(K.tf.Session(config=K.tf.ConfigProto(intra_op_parallelism_threads=6, inter_op_parallelism_threads=6)))
     global IGNORE_MASS_DATA, IGNORE_JET_DATA, REMOVE_HIGGS_NAN, SIMPLE_IMPUTE, ADVANCED_IMPUTE
 
     if "IGNORE_JET_DATA" in sys.argv:
