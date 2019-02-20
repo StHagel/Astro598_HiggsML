@@ -130,7 +130,7 @@ def main():
     # START PREPARING DATA
 
     # Depending on the option set above, we will handle the NaN's in different ways:
-    if IGNORE_JET_DATA and IGNORE_MASS_DATA:
+    if IGNORE_JET_DATA:
         # Case 1: Just ignore the columns with jet dara in them.
         print("Mode IGNORE_JET_DATA is set to True.")
         print("Deleting missing data.")
@@ -145,7 +145,7 @@ def main():
         # If the REMOVE_HIGGS_NAN flag is set, we remove the NaN's.
         elif REMOVE_HIGGS_NAN:
             dataframe.dropna(inplace=True)
-
+        # For the simple imputing we use the physical higgs mass to replace NaN's.
         elif SIMPLE_IMPUTE:
             dataframe.fillna(PHYSICAL_HIGGS_MASS, inplace=True)
 
