@@ -80,15 +80,24 @@ def main():
 
     global IGNORE_MASS_DATA, IGNORE_JET_DATA, REMOVE_HIGGS_NAN, SIMPLE_IMPUTE, ADVANCED_IMPUTE
 
-    if "IGNORE_MASS_DATA" in sys.argv:
-        IGNORE_MASS_DATA = True
     if "IGNORE_JET_DATA" in sys.argv:
+        print("Ignoring jet data.")
         IGNORE_JET_DATA = True
+
+    if "IGNORE_MASS_DATA" in sys.argv:
+        print("Ignoring mass data.")
+        IGNORE_MASS_DATA = True
+
     if "REMOVE_HIGGS_NAN" in sys.argv:
+        print("Removing NaN's in Higgs mass.")
         REMOVE_HIGGS_NAN = True
+
     if "SIMPLE_IMPUTE" in sys.argv:
+        print("Using simple imputer for Higgs mass.")
         SIMPLE_IMPUTE = True
+
     if "ADVANCED_IMPUTE" in sys.argv:
+        print("Using advanced imputer for Higgs massE")
         ADVANCED_IMPUTE = True
 
     # END SETTING FLAGS
@@ -184,7 +193,7 @@ def main():
 
     # Since the code for training the model with the data from jet events differs considerably from
     if IGNORE_JET_DATA:
-        train_nojet(x_train, x_test, y_train, y_test, len(train[0]))
+        print(train_nojet(x_train, x_test, y_train, y_test, len(train[0])))
 
     # END TRAINING MODEL
 
@@ -220,7 +229,7 @@ def train_nojet(x_train, x_test, y_train, y_test, input_dim):
               epochs=20,
               batch_size=128)
 
-    score = model.evaluate(x_test, y_test, batch_size=128)
+    return model.evaluate(x_test, y_test, batch_size=128)
 
 
 if __name__ == "__main__":
