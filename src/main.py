@@ -38,8 +38,17 @@ index 32: Label
 
 index 33-34: Kaggle*
     Used in the original challenge, obsolete for this project.
+
+USAGE: python3 main.py flags
+where flags can be one or more of
+IGNORE_MASS_DATA
+IGNORE_JET_DATA
+REMOVE_HIGGS_NAN
+SIMPLE_IMPUTE
+ADVANCED_IMPUTE
 """
 
+import sys
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
@@ -57,14 +66,33 @@ JETNUMBER_INDEX = 23
 SOLOJET_INDEX = [24, 25, 26]
 
 # These Booleans will define how the missing data is handled.
-IGNORE_MISSING_DATA = False
-IGNORE_JET_DATA = True
+IGNORE_MASS_DATA = False
+IGNORE_JET_DATA = False
 REMOVE_HIGGS_NAN = False
 SIMPLE_IMPUTE = False
 ADVANCED_IMPUTE = False
 
+PHYSICAL_HIGGS_MASS = 125.18
+
 
 def main():
+    # START SETTING FLAGS
+
+    global IGNORE_MASS_DATA, IGNORE_JET_DATA, REMOVE_HIGGS_NAN, SIMPLE_IMPUTE, ADVANCED_IMPUTE
+
+    if "IGNORE_MASS_DATA" in sys.argv:
+        IGNORE_MASS_DATA = True
+    if "IGNORE_JET_DATA" in sys.argv:
+        IGNORE_JET_DATA = True
+    if "REMOVE_HIGGS_NAN" in sys.argv:
+        REMOVE_HIGGS_NAN = True
+    if "SIMPLE_IMPUTE" in sys.argv:
+        SIMPLE_IMPUTE = True
+    if "ADVANCED_IMPUTE" in sys.argv:
+        ADVANCED_IMPUTE = True
+
+    # END SETTING FLAGS
+
     # START READING DATA
     try:
         datafile = "../data/data.csv"
@@ -102,26 +130,24 @@ def main():
     # START PREPARING DATA
 
     # Depending on the option set above, we will handle the NaN's in different ways:
-    if IGNORE_MISSING_DATA:
-        # Case 1: Just ignore the columns with NaN's in them
-        print("Mode IGNORE_MISSING_DATA is set to True.")
-        print("Deleting missing data.")
-        del dataframe[DER_MASS_INDEX]
-        for i in SOLOJET_INDEX:
-            del dataframe[i]
-        for j in MULTIJET_INDEX:
-            del dataframe[j]
-
-    if IGNORE_JET_DATA:
-        # Case 2: Ignore all of the data that involves jet production and delete only the NaN Higgs masses.
+    if IGNORE_JET_DATA and IGNORE_MASS_DATA:
+        # Case 1: Just ignore the columns with jet dara in them.
         print("Mode IGNORE_JET_DATA is set to True.")
         print("Deleting missing data.")
         for i in SOLOJET_INDEX:
             del dataframe[i]
         for j in MULTIJET_INDEX:
             del dataframe[j]
-        dataframe.dropna(inplace=True)
 
+        # If the IGNORE_MASS_DATA flag is set, we will also delete the mass column.
+        if IGNORE_MASS_DATA:
+            del dataframe[DER_MASS_INDEX]
+        # If the REMOVE_HIGGS_NAN flag is set, we remove the NaN's.
+        elif REMOVE_HIGGS_NAN:
+            dataframe.dropna(inplace=True)
+
+        elif SIMPLE_IMPUTE:
+            dataframe.fillna(PHYSICAL_HIGGS_MASS, inplace=True)
 
     # TODO 2: Remove the lines with NaN's in the Higgs mass and split the data by the number of jets
     # TODO 3: Use physical value (or mean?) for the Higgs mass as imputation.
@@ -156,6 +182,20 @@ def main():
 
     # START TRAINING MODEL
 
+    # Since the code for training the model with the data from jet events differs considerably from
+    if IGNORE_JET_DATA:
+        train_nojet(x_train, x_test, y_train, y_test, len(train[0]))
+
+    # END TRAINING MODEL
+
+    # START OPTIONAL CODE
+
+    # TODO: Implement some of the improvements mentioned in the HiggsML talk.
+
+    # END OPTIONAL CODE
+
+
+def train_nojet(x_train, x_test, y_train, y_test, input_dim):
     from keras.models import Sequential
     from keras.layers import Dense, Dropout
 
@@ -164,7 +204,7 @@ def main():
     # TODO: Choose meaningful parameters, experiment with the model
     model = Sequential()
 
-    model.add(Dense(64, input_dim=len(train[0]), activation='relu'))
+    model.add(Dense(64, input_dim=input_dim, activation='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(64, activation='relu'))
     model.add(Dropout(0.5))
@@ -181,14 +221,6 @@ def main():
               batch_size=128)
 
     score = model.evaluate(x_test, y_test, batch_size=128)
-
-    # END TRAINING MODEL
-
-    # START OPTIONAL CODE
-
-    # TODO: Implement some of the improvements mentioned in the HiggsML talk.
-
-    # END OPTIONAL CODE
 
 
 if __name__ == "__main__":
