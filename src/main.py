@@ -57,7 +57,8 @@ JETNUMBER_INDEX = 23
 SOLOJET_INDEX = [24, 25, 26]
 
 # These Booleans will define how the missing data is handled.
-IGNORE_MISSING_DATA = True
+IGNORE_MISSING_DATA = False
+IGNORE_JET_DATA = True
 REMOVE_HIGGS_NAN = False
 SIMPLE_IMPUTE = False
 ADVANCED_IMPUTE = False
@@ -111,6 +112,17 @@ def main():
         for j in MULTIJET_INDEX:
             del dataframe[j]
 
+    if IGNORE_JET_DATA:
+        # Case 2: Ignore all of the data that involves jet production and delete only the NaN Higgs masses.
+        print("Mode IGNORE_JET_DATA is set to True.")
+        print("Deleting missing data.")
+        dataframe.dropna(inplace=True)
+        for i in SOLOJET_INDEX:
+            del dataframe[i]
+        for j in MULTIJET_INDEX:
+            del dataframe[j]
+
+
     # TODO 2: Remove the lines with NaN's in the Higgs mass and split the data by the number of jets
     # TODO 3: Use physical value (or mean?) for the Higgs mass as imputation.
     # TODO 4: Use a regression model as Higgs mass imputer (advanced)
@@ -152,7 +164,7 @@ def main():
     # TODO: Choose meaningful parameters, experiment with the model
     model = Sequential()
 
-    model.add(Dense(64, input_dim=19, activation='relu'))
+    model.add(Dense(64, input_dim=len(train[0]), activation='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(64, activation='relu'))
     model.add(Dropout(0.5))
