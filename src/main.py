@@ -5,7 +5,7 @@ The purpose of this project is to take data from simulated proton-proton collisi
 Cern. This project was motivated by the 2014 ATLAS Higgs Machine Learning challenge. The data used for this project has
 been provided for said challenge, which consists of 818238 events with 30 dimensions.
 
-Some notes about the dataset:
+Some notes about the dataframe:
 The following indices are of significant importance:
 
 index 0: EventID
@@ -42,7 +42,8 @@ index 33-34: Kaggle*
 
 import numpy as np
 import pandas as pd
-import csv
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
 
 # These are the important indices mentioned above.
 KAGGLE_WEIGHT_INDEX = 34
@@ -64,26 +65,36 @@ ADVANCED_IMPUTE = False
 
 def main():
     # START READING DATA
-    datafile = "../data/data.csv"
-    print("Reading data from " + datafile)
-    dataset = pd.read_csv(datafile, header=None)
+    try:
+        datafile = "../data/dataa.csv"
+        print("Reading data from " + datafile)
+        dataframe = pd.read_csv(datafile, header=None)
+    except FileNotFoundError:
+        print("File " + datafile + " not found. Please make sure you are running this program from the src folder.")
+        quit()
 
-    # First we delete the coloumns that contain data, which will not be used to in the model
-    del dataset[KAGGLE_WEIGHT_INDEX]
-    del dataset[KAGGLE_SET_INDEX]
-    del dataset[WEIGHT_INDEX]
-    del dataset[EVENTID_INDEX]
+    # First we delete the columns that contain data, which will not be used to in the model
+    print("Removing unused columns.")
+    del dataframe[KAGGLE_WEIGHT_INDEX]
+    del dataframe[KAGGLE_SET_INDEX]
+    del dataframe[WEIGHT_INDEX]
+    del dataframe[EVENTID_INDEX]
 
     # And we also remove the header
-    dataset = dataset.iloc[1:]
+    dataframe = dataframe.iloc[1:]
 
-    # Next we convert the strings in the dataset to actual numbers. The option errors='ignore' guarantees, that the
+    # Next we convert the strings in the dataframe to actual numbers. The option errors='ignore' guarantees, that the
     # values for the label are kept and not converted to NaN.
-    dataset = dataset.apply(pd.to_numeric, errors='ignore')
+    print("Converting to numbers.")
+    dataframe = dataframe.apply(pd.to_numeric, errors='ignore')
 
-    dataset = dataset.replace({-999.0: np.NaN})
+    # Now we can replace the -999.0 entries with NaN.
+    print("Replacing missing data with NaN.")
+    dataframe = dataframe.replace({-999.0: np.NaN})
 
-    # TODO: Convert the 's' and 'b' labels to 1 and 0.
+    # We will further convert the label from 'b' and 's' to 0 and 1 respectively.
+    print("Converting labels.")
+    dataframe[LABEL_INDEX] = 1 - pd.factorize(dataframe[LABEL_INDEX])[0]
 
     # END READING DATA
 
@@ -92,21 +103,43 @@ def main():
     # Depending on the option set above, we will handle the NaN's in different ways:
     if IGNORE_MISSING_DATA:
         # Case 1: Just ignore the columns with NaN's in them
-        del dataset[DER_MASS_INDEX]
+        print("Mode IGNORE_MISSING_DATA is set to True.")
+        print("Deleting missing data.")
+        del dataframe[DER_MASS_INDEX]
         for i in SOLOJET_INDEX:
-            del dataset[i]
+            del dataframe[i]
         for j in MULTIJET_INDEX:
-            del dataset[j]
-
-    print("Works so far")
+            del dataframe[j]
 
     # TODO 2: Remove the lines with NaN's in the Higgs mass and split the data by the number of jets
     # TODO 3: Use physical value (or mean?) for the Higgs mass as imputation.
     # TODO 4: Use a regression model as Higgs mass imputer (advanced)
 
-    # TODO: Normalize if needed
-    # TODO: Split training- and testdata
+    # Now we can convert the daraframe to a numpy matrix.
+    print("Converting data to Matrix.")
+    data_matrix = dataframe.as_matrix().astype(np.float)
 
+    # Let's do some garbage collection.
+    del dataframe
+
+    # We will use the MinMaxScaler form sklearn to normalize the data
+    scaler = MinMaxScaler()
+    scaler.fit(data_matrix)
+    print("Normalizing data.")
+    data_matrix_norm = scaler.transform(data_matrix)
+    del data_matrix
+
+    # We furthermore need to separate the labels from the actual training data
+    print("Separating labels.")
+    target = data_matrix_norm[:, -1]
+    train = data_matrix_norm[:, :-1]
+    del data_matrix_norm
+
+    # Now we can finally split our data into training and test data and start training our model
+    print("Splitting test and training data")
+    x_train, x_test, y_train, y_test = train_test_split(train, target, test_size=0.15, random_state=1)
+
+    print("Finished data preparation.")
     # END PREPARING DATA
 
     # START TRAINING MODEL
@@ -130,10 +163,12 @@ def main():
                   metrics=['accuracy'])
 
     model.fit(x_train, y_train,
-              epochs=20,
+              epochs=5,
               batch_size=128)
 
     score = model.evaluate(x_test, y_test, batch_size=128)
+
+    print(score)
 
     # END TRAINING MODEL
 
