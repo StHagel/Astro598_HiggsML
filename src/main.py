@@ -156,6 +156,8 @@ def main():
     model.add(Dropout(0.5))
     model.add(Dense(64, activation='relu'))
     model.add(Dropout(0.5))
+    model.add(Dense(64, activation='relu'))
+    model.add(Dropout(0.5))
     model.add(Dense(1, activation='sigmoid'))
 
     model.compile(loss='binary_crossentropy',
