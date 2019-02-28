@@ -240,11 +240,12 @@ def main():
                   optimizer='rmsprop',
                   metrics=['accuracy'])
 
-    result = model.fit(x_train, y_train,
+    model.fit(x_train, y_train,
               epochs=20,
               batch_size=128)
 
-    print(result)
+    loss_and_metrics = model.evaluate(x_test, y_test, batch_size=128)
+    print(loss_and_metrics)
 
     # END TRAINING MODEL
 
