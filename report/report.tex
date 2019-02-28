@@ -1,0 +1,51 @@
+\documentclass[10pt]{article}
+
+\usepackage{amssymb, latexsym, amsmath}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx, float, subcaption}
+\usepackage{color}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{slashed}
+\usepackage{mathrsfs}
+\usepackage{dsfont}
+
+
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,automata,backgrounds,calc,er,patterns}
+
+\bibliographystyle{unsrt}
+
+\title{\textbf{Report: Finding the Higgs Boson with Deep Learning}\\
+ASTR 598: Topics in Theoretical Astrophysics\\
+Winter 2019}
+\author{Stephan Hagel\\Student Number: 1870562\\sthagel@uw.edu}
+\date{}
+
+\renewcommand{\phi}{\varphi}
+\renewcommand{\epsilon}{\varepsilon}
+\renewcommand{\mathbb}{\mathds}
+
+\newcommand{\unity}{\mathds{1}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\levi}{\varepsilon_{ijk}}
+\newcommand{\leviup}{\varepsilon^{ijk}}
+\newcommand{\vectz}[2]{\begin{pmatrix}	#1\\	#2		   \end{pmatrix}}
+\newcommand{\vectd}[3]{\begin{pmatrix}	#1\\	#2\\    #3 \end{pmatrix}}
+\newcommand{\condensate}{\left\langle\overline{Q}Q\right\rangle}
+\newcommand{\To}{\longrightarrow}
+
+\newtheorem{env_definition}{Definition}[section]
+\newtheorem{env_satz}{Satz}
+
+\begin{document}
+    \maketitle
+
+    \input{introduction.tex}
+    \input{data.tex}
+    \input{code.tex}
+    \input{results.tex}
+    \input{remarks.tex}
+
+\end{document}

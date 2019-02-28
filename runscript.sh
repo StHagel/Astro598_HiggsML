@@ -36,5 +36,5 @@ python3 src/main.py REMOVE_HIGGS_NAN > logs/log8.txt
 
 echo Running with tags SIMPLE_IMPUTE, writing output to logs/log9.txt
 
-python3 src/main.py SIMPLE_IMPUTE > logs/log9.txt
+python3 src/main.py SIMPLE_IMPUTE SAVE_MODEL > logs/log9.txt
 

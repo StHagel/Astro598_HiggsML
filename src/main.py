@@ -54,6 +54,8 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from keras import backend as K
+from keras import save_model_hdf5
+from keras import load_model_hdf5
 import tensorflow as tf
 
 # These are the important indices mentioned above.
@@ -73,7 +75,12 @@ IGNORE_JET_DATA = False
 IGNORE_MULTIJET_DATA = False
 REMOVE_HIGGS_NAN = False
 SIMPLE_IMPUTE = False
-ADVANCED_IMPUTE = False
+
+# This Boolean shows, if the model should be saved in the end.
+SAVE_MODEL = False
+
+# This Boolean shows, if a model should be loaded from a file. If this is the case, no new model will be trained.
+LOAD_MODEL = False
 
 PHYSICAL_HIGGS_MASS = 125.18
 
@@ -105,8 +112,20 @@ def main():
         SIMPLE_IMPUTE = True
 
     if "ADVANCED_IMPUTE" in sys.argv:
-        print("Using advanced imputer for Higgs massE")
+        print("Using advanced imputer for Higgs mass.")
         ADVANCED_IMPUTE = True
+
+    # Set the flags for saving and loading the model.
+    global SAVE_MODEL, LOAD_MODEL
+    model_path = "models/model.h5"
+
+    if "LOAD_MODEL" in sys.argv:
+        LOAD_MODEL = True
+        print("Model will be loaded from " + model_path +".")
+
+    if "SAVE_MODEL" in sys.argv:
+        SAVE_MODEL = True
+        print("Model will be saved to " + model_path + ".")
 
     # END SETTING FLAGS
 
@@ -222,23 +241,22 @@ def main():
     from keras.models import Sequential
     from keras.layers import Dense, Dropout
 
-    # Here is where the actual model training begins. The parameters right now are taken from the example in the Keras
-    # documentation. Also the variable names for x_train and y_train have to be adjusted.
-    model = Sequential()
+    if not LOAD_MODEL:
+        # Here is where the actual model training begins.
+        model = Sequential()
 
-    mean = (input_dim_ + 1) // 2
+        mean = (input_dim_ + 1) // 2
 
-    model.add(Dense(input_dim_, input_dim=input_dim_, activation='relu'))
-    # model.add(Dense(64, activation='relu'))
-    # model.add(Dropout(0.25))
-    # model.add(Dense(128, activation='relu'))
-    # model.add(Dropout(0.5))
-    model.add(Dense(mean, activation='relu'))
-    model.add(Dense(1, activation='sigmoid'))
+        model.add(Dense(input_dim_, input_dim=input_dim_, activation='relu'))
+        model.add(Dense(mean, activation='relu'))
+        model.add(Dense(1, activation='sigmoid'))
 
-    model.compile(loss='binary_crossentropy',
-                  optimizer='rmsprop',
-                  metrics=['accuracy'])
+        model.compile(loss='binary_crossentropy',
+                      optimizer='rmsprop',
+                      metrics=['accuracy'])
+
+    else:
+        model = load_model_hdf5(model_path)
 
     model.fit(x_train, y_train,
               epochs=20,
@@ -246,6 +264,9 @@ def main():
 
     loss_and_metrics = model.evaluate(x_test, y_test, batch_size=128)
     print(loss_and_metrics)
+
+    if SAVE_MODEL:
+        save_model_hdf5(model, model_path)
 
     # END TRAINING MODEL
 
