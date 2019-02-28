@@ -70,6 +70,7 @@ SOLOJET_INDEX = [24, 25, 26]
 # These Booleans will define how the missing data is handled.
 IGNORE_MASS_DATA = False
 IGNORE_JET_DATA = False
+IGNORE_MULTIJET_DATA = False
 REMOVE_HIGGS_NAN = False
 SIMPLE_IMPUTE = False
 ADVANCED_IMPUTE = False
@@ -81,11 +82,15 @@ def main():
     # START SETTING FLAGS
 
     K.set_session(K.tf.Session(config=K.tf.ConfigProto(intra_op_parallelism_threads=6, inter_op_parallelism_threads=6)))
-    global IGNORE_MASS_DATA, IGNORE_JET_DATA, REMOVE_HIGGS_NAN, SIMPLE_IMPUTE, ADVANCED_IMPUTE
+    global IGNORE_MASS_DATA, IGNORE_JET_DATA, REMOVE_HIGGS_NAN, SIMPLE_IMPUTE, ADVANCED_IMPUTE, IGNORE_MULTIJET_DATA
 
     if "IGNORE_JET_DATA" in sys.argv:
-        print("Ignoring jet data.")
+        print("Ignoring all jet data.")
         IGNORE_JET_DATA = True
+
+    if "IGNORE_MULTIJET_DATA" in sys.argv:
+        print("Ignoring data with multiple jets.")
+        IGNORE_MULTIJET_DATA = True
 
     if "IGNORE_MASS_DATA" in sys.argv:
         print("Ignoring mass data.")
@@ -151,21 +156,37 @@ def main():
         for j in MULTIJET_INDEX:
             del dataframe[j]
 
-        # If the IGNORE_MASS_DATA flag is set, we will also delete the mass column.
-        if IGNORE_MASS_DATA:
-            del dataframe[DER_MASS_INDEX]
-        # If the REMOVE_HIGGS_NAN flag is set, we remove the NaN's.
-        elif REMOVE_HIGGS_NAN:
-            dataframe.dropna(inplace=True)
-        # For the simple imputing we use the physical higgs mass to replace NaN's.
-        elif SIMPLE_IMPUTE:
-            dataframe.fillna(PHYSICAL_HIGGS_MASS, inplace=True)
+    elif IGNORE_MULTIJET_DATA:
+        # Case 2: Ignore the data with multiple jets generated.
+        print("Mode IGNORE_MULTIJET_DATA is set to True.")
+        print("Deleting missing data.")
 
-    # TODO 2: Remove the lines with NaN's in the Higgs mass and split the data by the number of jets
-    # TODO 3: Use physical value (or mean?) for the Higgs mass as imputation.
-    # TODO 4: Use a regression model as Higgs mass imputer (advanced)
+        # Delete the columns, that contain Multijet data
+        for i in MULTIJET_INDEX:
+            del dataframe[i]
 
-    # Now we can convert the daraframe to a numpy matrix.
+        # Deleting the rows, which contain no jet data
+        dataframe = dataframe[dataframe[JETNUMBER_INDEX] > 0]
+
+    else:
+        # Case 3: Using all jet data
+        print("Only Events with multiple jets produced will be used.")
+        print("Deleting missing data.")
+
+        # Delete the rows with no jets produced
+        dataframe = dataframe[dataframe[JETNUMBER_INDEX] > 1]
+
+    # If the IGNORE_MASS_DATA flag is set, we will also delete the mass column.
+    if IGNORE_MASS_DATA:
+        del dataframe[DER_MASS_INDEX]
+    # If the REMOVE_HIGGS_NAN flag is set, we remove the NaN's.
+    elif REMOVE_HIGGS_NAN:
+        dataframe.dropna(inplace=True)
+    # For the simple imputing we use the physical higgs mass to replace NaN's.
+    elif SIMPLE_IMPUTE:
+        dataframe.fillna(PHYSICAL_HIGGS_MASS, inplace=True)
+
+    # Now we can convert the dataframe to a numpy matrix.
     print("Converting data to Matrix.")
     data_matrix = dataframe.as_matrix().astype(np.float)
 
@@ -185,6 +206,10 @@ def main():
     train = data_matrix_norm[:, :-1]
     del data_matrix_norm
 
+    # Depending on the flags, that have been set, the dimension of our training data might vary.
+    # Therefore we need to extract the input dimension to use it to make our network a reasonable size.
+    input_dim_ = len(train[0])
+
     # Now we can finally split our data into training and test data and start training our model
     print("Splitting test and training data")
     x_train, x_test, y_train, y_test = train_test_split(train, target, test_size=0.15, random_state=1)
@@ -194,9 +219,32 @@ def main():
 
     # START TRAINING MODEL
 
-    # Since the code for training the model with the data from jet events differs considerably from
-    if IGNORE_JET_DATA:
-        print(train_nojet(x_train, x_test, y_train, y_test, len(train[0])))
+    from keras.models import Sequential
+    from keras.layers import Dense, Dropout
+
+    # Here is where the actual model training begins. The parameters right now are taken from the example in the Keras
+    # documentation. Also the variable names for x_train and y_train have to be adjusted.
+    model = Sequential()
+
+    mean = (input_dim_ + 1) // 2
+
+    model.add(Dense(input_dim_, input_dim=input_dim_, activation='relu'))
+    # model.add(Dense(64, activation='relu'))
+    # model.add(Dropout(0.25))
+    # model.add(Dense(128, activation='relu'))
+    # model.add(Dropout(0.5))
+    model.add(Dense(mean, activation='relu'))
+    model.add(Dense(1, activation='sigmoid'))
+
+    model.compile(loss='binary_crossentropy',
+                  optimizer='rmsprop',
+                  metrics=['accuracy'])
+
+    result = model.fit(x_train, y_train,
+              epochs=20,
+              batch_size=128)
+
+    print(result)
 
     # END TRAINING MODEL
 
@@ -205,34 +253,6 @@ def main():
     # TODO: Implement some of the improvements mentioned in the HiggsML talk.
 
     # END OPTIONAL CODE
-
-
-def train_nojet(x_train, x_test, y_train, y_test, input_dim_):
-    from keras.models import Sequential
-    from keras.layers import Dense, Dropout
-
-    # Here is where the actual model training begins. The parameters right now are taken from the example in the Keras
-    # documentation. Also the variable names for x_train and y_train have to be adjusted.
-    # TODO: Choose meaningful parameters, experiment with the model
-    model = Sequential()
-
-    model.add(Dense(input_dim_, input_dim=input_dim_, activation='relu'))
-    # model.add(Dense(64, activation='relu'))
-    # model.add(Dropout(0.25))
-    # model.add(Dense(128, activation='relu'))
-    # model.add(Dropout(0.5))
-    model.add(Dense(10, activation='relu'))
-    model.add(Dense(1, activation='sigmoid'))
-
-    model.compile(loss='binary_crossentropy',
-                  optimizer='rmsprop',
-                  metrics=['accuracy'])
-
-    model.fit(x_train, y_train,
-              epochs=20,
-              batch_size=128)
-
-    return model.evaluate(x_test, y_test, batch_size=128)
 
 
 if __name__ == "__main__":
