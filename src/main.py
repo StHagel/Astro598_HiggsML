@@ -112,7 +112,7 @@ def main():
 
     # START READING DATA
     try:
-        datafile = "../data/data.csv"
+        datafile = "data/data.csv"
         print("Reading data from " + datafile)
         dataframe = pd.read_csv(datafile, header=None)
     except FileNotFoundError:
