@@ -54,8 +54,8 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from keras import backend as K
-from keras import save_model_hdf5
-from keras import load_model_hdf5
+# from keras import save_model_hdf5
+# from keras import load_model_hdf5
 import tensorflow as tf
 
 # These are the important indices mentioned above.
@@ -241,22 +241,22 @@ def main():
     from keras.models import Sequential
     from keras.layers import Dense, Dropout
 
-    if not LOAD_MODEL:
+    # if not LOAD_MODEL:
         # Here is where the actual model training begins.
-        model = Sequential()
+    model = Sequential()
 
-        mean = (input_dim_ + 1) // 2
+    mean = (input_dim_ + 1) // 2
 
-        model.add(Dense(input_dim_, input_dim=input_dim_, activation='relu'))
-        model.add(Dense(mean, activation='relu'))
-        model.add(Dense(1, activation='sigmoid'))
+    model.add(Dense(input_dim_, input_dim=input_dim_, activation='relu'))
+    model.add(Dense(mean, activation='relu'))
+    model.add(Dense(1, activation='sigmoid'))
 
-        model.compile(loss='binary_crossentropy',
-                      optimizer='rmsprop',
-                      metrics=['accuracy'])
+    model.compile(loss='binary_crossentropy',
+                  optimizer='rmsprop',
+                  metrics=['accuracy'])
 
-    else:
-        model = load_model_hdf5(model_path)
+    # else:
+    model = load_model_hdf5(model_path)
 
     model.fit(x_train, y_train,
               epochs=20,
@@ -265,8 +265,8 @@ def main():
     loss_and_metrics = model.evaluate(x_test, y_test, batch_size=128)
     print(loss_and_metrics)
 
-    if SAVE_MODEL:
-        save_model_hdf5(model, model_path)
+    # if SAVE_MODEL:
+    #     save_model_hdf5(model, model_path)
 
     # END TRAINING MODEL
 
