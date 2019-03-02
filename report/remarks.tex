@@ -1,0 +1,9 @@
+\section{Closing remarks and outlook}\label{sec:outlook}
+
+We have seen that even a simple model, which has been trained without any knowledge about high energy particle physics or relativistic kinematics, can perform quite well in classifying collision events.
+We have also seen that only a few steps of optimization can bring up the performance of the neural network significantly.
+Eventhough we get some nice results, the model is far from perfect and does not compare to the ones actually used for the challenge or research done at CERN.
+But even within the scope of this project there are still some ways to improve on the project.
+One idea, which I did not manage to implement yet is to improve the imputer for the missing Higgs candidate mass data by training a separate regression model on the events with valid data to predict a value for the missing data.
+Another way to improve is to implement some of the statistical tweaks mentioned by Balázs Kégl in his talk, in which he introduces the challenge.\footnote{http://opendata.cern.ch/record/330}
+

@@ -43,9 +43,9 @@ USAGE: python3 main.py flags
 where flags can be one or more of
 IGNORE_MASS_DATA
 IGNORE_JET_DATA
+IGNORE_MULTIJET_DATA
 REMOVE_HIGGS_NAN
 SIMPLE_IMPUTE
-ADVANCED_IMPUTE
 """
 
 import sys

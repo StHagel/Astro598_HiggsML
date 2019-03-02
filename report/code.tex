@@ -1,0 +1,141 @@
+\section{The Implementation}\label{sec:code}
+
+Next we want to take a look at how the problem was actually approached.
+
+\subsection{Software prerequisites}\label{subsec:code:prereq}
+
+The code has been written in python 3 and has been tested in python 3.5 on the Hyak HPC cluster at the University of Washington.
+To read and manipulate the data the numpy and pandas packages are needed.
+The data has been further preprocessed with functions from the sklearn package.
+The neural network has been created and trained with keras using the tensorflow backend.
+
+\subsection{Setting the options}\label{subsec:code:flags}
+
+There are multiple ways to deal with the missing data in the dataset.
+The user can choose which way should be done by setting the corresponding options when running the code via the terminal.
+The usage looks like:
+
+\texttt{python3 src/main.py <options>}
+
+\noindent The options can be one or more of the following:
+
+\begin{itemize}
+\item \texttt{IGNORE\_MASS\_DATA}:
+If this option is set, the column containing the Higgs candidate mass will be ignored completely when training the neural network. This option prevents any events from being deleted but decreases the input dimension.
+\item \texttt{REMOVE\_HIGGS\_NAN}:
+If this option is set, those events with missing data for the Higgs candidate mass will be deleted. This option decreases the number of total events but keeps the input dimension as it is.
+\item \texttt{SIMPLE\_IMPUTE}:
+This option will impute the missing data in the Higgs candidate mass with the physical value of the Higgs mass of $125.18$\;GeV \cite{tanabashi2018review}. This keeps the number of events and the input dimension unchanged, but approximates data.
+\item \texttt{IGNORE\_MULTIJET\_DATA}:
+If this option is set, all columns containing data, which is only defined if the number of jets is greater than one, will be ignored. Events with no jets produced will be deleted. This option reduces the number of events and the input dimension.
+\item \texttt{IGNORE\_JET\_DATA}:
+If this option is set, all columns containing jet data will be ignored. This keeps the number of events constant but reduces the input dimension even further than the previous option.
+\end{itemize}
+
+\subsection{Reading the data}\label{subsec:code:reading}
+
+After the options have been set, the dataset has to be read by the program.
+To do this, the \texttt{read\_csv} function from pandas is used.\footnote{In this report I will be skipping parts of the code which are not very instructive, such as error handling and garbage collection.}
+\\
+\\
+\noindent\texttt{datafile = "data/data.csv"\\
+dataframe = pd.read\_csv(datafile, header=None)}
+\\
+\\
+Next the irrelevant data from the original challenge as well as the header of the data need to be removed.
+\\
+\\
+\noindent\texttt{del dataframe[KAGGLE\_WEIGHT\_INDEX]\\
+del dataframe[KAGGLE\_SET\_INDEX]\\
+del dataframe[WEIGHT\_INDEX]\\
+del dataframe[EVENTID\_INDEX]\\
+dataframe = dataframe.iloc[1:]}
+\\
+\\
+To further handle the data, we need to convert it from string to float and replace the -999.0 values by \texttt{NaN}, so it does not get confused with actually relevant data points.
+The labels also have to be converted to numerical values in order to be given to the neural network.
+I chose 1 to be the value for the signal label and 0 the value for the background label.
+\\
+\\
+\noindent\texttt{dataframe = dataframe.apply(pd.to\_numeric, errors='ignore')\\
+dataframe = dataframe.replace($\{$-999.0: np.NaN$\}$)\\
+dataframe[LABEL\_INDEX] = 1 - pd.factorize(dataframe[LABEL\_INDEX])[0]}
+
+\subsection{Preprocessing the data}\label{subsec:code:prepro}
+
+Now the data is ready for actual preprocessing.
+First we will take care of the missing data.
+Depending on what options are set, the missing data for the jet productions are handled accordingly.
+\\
+\\
+\noindent\texttt{if IGNORE\_JET\_DATA:\\
+\indent for i in SOLOJET\_INDEX:\\
+\indent\indent del dataframe[i]\\
+\indent for j in MULTIJET\_INDEX:\\
+\indent\indent del dataframe[j]\\
+elif IGNORE\_MULTIJET\_DATA:\\
+\indent for i in MULTIJET\_INDEX:\\
+\indent\indent del dataframe[i]\\
+\indent dataframe = dataframe[dataframe[JETNUMBER\_INDEX] > 0]\\
+else:\\
+\indent dataframe = dataframe[dataframe[JETNUMBER\_INDEX] > 1]}
+\\
+\\
+Afterwards we can take care of the missing data in the Higgs candidate mass.
+\\
+\\
+\texttt{if IGNORE\_MASS\_DATA:\\
+\indent del dataframe[DER\_MASS\_INDEX]\\
+elif REMOVE\_HIGGS\_NAN:\\
+\indent dataframe.dropna(inplace=True)\\
+elif SIMPLE\_IMPUTE:\\
+\indent dataframe.fillna(PHYSICAL\_HIGGS\_MASS, inplace=True)}
+\\
+\\
+Next we can convert the pandas dataframe into a numpy matrix and use the MinMaxScaler from the sklearn package to normalize the data.
+\\
+\\
+\texttt{data\_matrix = dataframe.as\_matrix().astype(np.float)\\
+scaler = MinMaxScaler()\\
+scaler.fit(data\_matrix)\\
+print("Normalizing data.")\\
+data\_matrix\_norm = scaler.transform(data\_matrix)}
+\\
+\\
+For the split between test and training data, good results could be achieved with a 85/15 split.
+\\
+\\
+\texttt{target = data\_matrix\_norm[:, -1]\\
+train = data\_matrix\_norm[:, :-1]\\
+x\_train, x\_test, y\_train, y\_test = train\_test\_split(train, target,\\
+\indent test\_size=0.15, random\_state=1)}
+\\
+\\
+With that out of the way, the data is ready to be used to train the neural network.
+
+\subsection{Training the network}\label{subsec:code:training}
+
+The next question to ask ourselves is how to actually design the neural network.
+How many input neurons should we use?
+How many hidden layers should we use?
+How many neurons per layer should we use?\\
+After some experimenting with those parameters and doing some reading I found the best results with the following blueprint:
+The number of input neurons should be equal to the dimension of the data.
+Their output type should be a rectified linear unit (ReLU).
+After that there should be one hidden layer, with $(\text{dim} + 1) / 2$ neurons in it.
+Their output type should be a ReLU as well.
+Finally there is one output neuron of the sigmoid type, since it is a binary classification problem.
+The model is trained using the binary crossentropy as loss function and the \texttt{rmsprop} optimizer.
+The model is trained on the \texttt{x\_train} and \texttt{y\_train} data for 20 epochs and then evaluated on the \texttt{x\_test} and \texttt{y\_test} data.\\
+The implementation of this procedure with keras is rather simple and given below.
+\\
+\\
+\texttt{model = Sequential()\\
+mean = (input\_dim\_ + 1) // 2\\
+model.add(Dense(input\_dim\_, input\_dim=input\_dim\_, activation='relu'))\\
+model.add(Dense(mean, activation='relu'))\\
+model.add(Dense(1, activation='sigmoid'))\\
+model.compile(loss='binary\_crossentropy', optimizer='rmsprop',\\
+\indent metrics=['accuracy'])\\
+model.fit(x\_train, y\_train, epochs=20, batch\_size=128)\\
+loss\_and\_metrics = model.evaluate(x\_test, y\_test, batch\_size=128)}
